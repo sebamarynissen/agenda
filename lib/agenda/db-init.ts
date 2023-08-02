@@ -25,21 +25,24 @@ export const dbInit = function (
   }
 
   debug("attempting index creation");
+  const handler = (error?: AnyError) => {
+    if (error) {
+      debug("index creation failed");
+      this.emit("error", error);
+    } else {
+      debug("index creation success");
+      this.emit("ready");
+    }
+
+    if (cb) {
+      cb(error, this._collection);
+    }
+  };
   this._collection.createIndex(
     this._indices,
     { name: "findAndLockNextJobIndex" },
-    (error) => {
-      if (error) {
-        debug("index creation failed");
-        this.emit("error", error);
-      } else {
-        debug("index creation success");
-        this.emit("ready");
-      }
-
-      if (cb) {
-        cb(error, this._collection);
-      }
-    }
+  ).then(
+    () => handler(),
+    (error) => handler(error)
   );
 };

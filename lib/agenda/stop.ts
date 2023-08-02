@@ -17,29 +17,23 @@ export const stop = async function (this: Agenda): Promise<void> {
    * @returns resolves when job unlocking fails or passes
    */
   const _unlockJobs = async (): Promise<void> => {
-    return new Promise((resolve, reject) => {
-      debug("Agenda._unlockJobs()");
-      const jobIds = this._lockedJobs.map((job) => job.attrs._id);
+    debug("Agenda._unlockJobs()");
+    const jobIds = this._lockedJobs.map((job) => job.attrs._id);
 
-      if (jobIds.length === 0) {
-        debug("no jobs to unlock");
-        resolve();
-      }
+    if (jobIds.length === 0) {
+      debug("no jobs to unlock");
+      return;
+    }
 
-      debug("about to unlock jobs with ids: %O", jobIds);
-      this._collection.updateMany(
+    debug("about to unlock jobs with ids: %O", jobIds);
+    try {
+      await this._collection.updateMany(
         { _id: { $in: jobIds } },
-        { $set: { lockedAt: null } },
-        (error) => {
-          if (error) {
-            reject(error);
-          }
-
-          this._lockedJobs = [];
-          resolve();
-        }
+        { $set: { lockedAt: null } }
       );
-    });
+    } finally {
+      this._lockedJobs = [];
+    }
   };
 
   debug("Agenda.stop called, clearing interval for processJobs()");
